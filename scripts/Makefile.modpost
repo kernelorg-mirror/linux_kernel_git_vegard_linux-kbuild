@@ -142,6 +142,10 @@ quiet_cmd_modpost = MODPOST $@
 		echo >&2 "         if you want to proceed at your own risk.";) \
 	$(MODPOST) $(modpost-args)
 
+# Provided by recursive-make predecessors during dry-run graph walk.
+PHONY += vmlinux.o
+PHONY += $(MODORDER)
+
 targets += $(output-symdump)
 $(output-symdump): $(modpost-deps) FORCE
 	$(call if_changed,modpost)
