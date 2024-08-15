@@ -53,6 +53,14 @@ endif
 # vmlinux.unstripped
 # ---------------------------------------------------------------------------
 
+ifdef CONFIG_MODULES
+# Provided by a recursive-make predecessor during dry-run graph walk.
+PHONY += .vmlinux.export.c
+
+targets += .vmlinux.export.o
+vmlinux.unstripped: .vmlinux.export.o
+endif
+
 ifdef CONFIG_ARCH_WANTS_PRE_LINK_VMLINUX
 vmlinux.unstripped: arch/$(SRCARCH)/tools/vmlinux.arch.o
 
@@ -66,6 +74,10 @@ ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(SRCARCH)/Makefile.postlink)
 cmd_link_vmlinux =							\
 	$< "$(LD)" "$(KBUILD_LDFLAGS)" "$(LDFLAGS_vmlinux)" "$@";	\
 	$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
+
+# Provided by recursive-make predecessors during dry-run graph walk.
+PHONY += vmlinux.o
+PHONY += $(KBUILD_LDS)
 
 targets += vmlinux.unstripped .vmlinux.export.o
 vmlinux.unstripped: scripts/link-vmlinux.sh vmlinux.o .vmlinux.export.o $(KBUILD_LDS) FORCE
