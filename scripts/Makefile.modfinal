@@ -13,6 +13,11 @@ include $(srctree)/scripts/Makefile.lib
 # find all modules listed in modules.order
 modules := $(call read-file, modules.order)
 
+# Provided by recursive-make predecessors during dry-run graph walk.
+PHONY += $(modules)
+PHONY += $(modules:%.o=%.mod.c)
+PHONY += scripts/module.lds
+
 __modfinal: $(modules:%.o=%.ko)
 	@:
 

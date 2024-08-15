@@ -71,6 +71,8 @@ define rule_ld_vmlinux.o
 	$(call cmd,check_function_names)
 endef
 
+# Provided by a recursive-make predecessor during dry-run graph walk.
+PHONY += vmlinux.a
 
 vmlinux.o: $(initcalls-lds) vmlinux.a $(KBUILD_VMLINUX_LIBS) FORCE
 	$(call if_changed_rule,ld_vmlinux.o)
