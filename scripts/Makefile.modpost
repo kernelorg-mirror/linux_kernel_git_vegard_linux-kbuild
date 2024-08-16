@@ -101,7 +101,7 @@ modpost-args += -t $(addprefix -u , $(ksym-wl))
 modpost-deps += $(ksym-wl)
 endif
 
-ifeq ($(wildcard vmlinux.o),)
+ifeq ($(or $(wildcard vmlinux.o), $(dry_run)),)
 missing-input := vmlinux.o
 output-symdump := modules-only.symvers
 else
