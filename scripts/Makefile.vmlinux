@@ -1,5 +1,12 @@
 # SPDX-License-Identifier: GPL-2.0-only
 
+# there doesn't seem to be a straightforward way for 'make -n' to output
+# one command while actually executing another, so we resort to this hack
+# where we set an environment variable differently depending on whether
+# we are executing from 'make' or executing from the 'make -n' log.
+LINK_VMLINUX=scripts/link-vmlinux.sh
+export LINK_VMLINUX
+
 PHONY := __default
 __default: vmlinux
 
@@ -72,7 +79,8 @@ ARCH_POSTLINK := $(wildcard $(srctree)/arch/$(SRCARCH)/Makefile.postlink)
 
 # Final link of vmlinux with optional arch pass after final link
 cmd_link_vmlinux =							\
-	$< "$(LD)" "$(KBUILD_LDFLAGS)" "$(LDFLAGS_vmlinux)" "$@";	\
+	"$${LINK_VMLINUX}"						\
+	"$(LD)" "$(KBUILD_LDFLAGS)" "$(LDFLAGS_vmlinux)" "$@";		\
 	$(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
 
 # Provided by recursive-make predecessors during dry-run graph walk.
@@ -80,7 +88,10 @@ PHONY += vmlinux.o
 PHONY += $(KBUILD_LDS)
 
 targets += vmlinux.unstripped .vmlinux.export.o
-vmlinux.unstripped: scripts/link-vmlinux.sh vmlinux.o .vmlinux.export.o $(KBUILD_LDS) FORCE
+vmlinux.unstripped: $(LINK_VMLINUX) vmlinux.o .vmlinux.export.o $(KBUILD_LDS) FORCE
+ifdef dry_run
+	@LINK_VMLINUX=/bin/true
+endif
 	+$(call if_changed_dep,link_vmlinux)
 ifdef CONFIG_DEBUG_INFO_BTF
 vmlinux.unstripped: $(RESOLVE_BTFIDS) $(srctree)/scripts/gen-btf.sh
