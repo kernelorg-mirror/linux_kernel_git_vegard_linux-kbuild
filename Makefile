@@ -843,6 +843,10 @@ ifdef may-sync-config
 # because some architectures define CROSS_COMPILE there.
 include include/config/auto.conf.cmd
 
+ifeq (,$(findstring B,$(firstword -$(MAKEFLAGS))))
+# This is a dummy target, only meant as a help for the user invoking make.
+# We don't want it to take effect when running 'make --always-make', since
+# that renders the --always-make option effectively useless.
 $(KCONFIG_CONFIG):
 	@echo >&2 '***'
 	@echo >&2 '*** Configuration file "$@" not found!'
@@ -851,6 +855,7 @@ $(KCONFIG_CONFIG):
 	@echo >&2 '*** "make menuconfig" or "make xconfig").'
 	@echo >&2 '***'
 	@/bin/false
+endif
 
 # The actual configuration files used during the build are stored in
 # include/generated/ and include/config/. Update them if .config is newer than
