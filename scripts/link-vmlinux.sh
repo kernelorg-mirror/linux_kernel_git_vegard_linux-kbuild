@@ -33,6 +33,22 @@ KBUILD_LDFLAGS="$2"
 LDFLAGS_vmlinux="$3"
 VMLINUX="$4"
 
+# If $dry_run is set, just echo the command instead of executing it.
+is_dry_run()
+{
+	[ -n "${dry_run+x}" ]
+}
+
+run()
+{
+	if ! is_dry_run
+	then
+		eval "$1"
+	else
+		echo "$1"
+	fi
+}
+
 is_enabled() {
 	grep -q "^$1=y" include/config/auto.conf
 }
@@ -41,7 +57,10 @@ is_enabled() {
 # Will be supressed by "make -s"
 info()
 {
-	printf "  %-7s %s\n" "${1}" "${2}"
+	if ! is_dry_run
+	then
+		printf "  %-7s %s\n" "${1}" "${2}"
+	fi
 }
 
 # Link of vmlinux
@@ -100,10 +119,10 @@ vmlinux_link()
 		ldflags="${ldflags} ${wl}-Map=vmlinux.map"
 	fi
 
-	${ld} ${ldflags} -o ${output}					\
+	run "${ld} ${ldflags} -o ${output}				\
 		${wl}--whole-archive ${objs} ${wl}--no-whole-archive	\
 		${wl}--start-group ${libs} ${wl}--end-group		\
-		${kallsymso} ${btf_vmlinux_bin_o} ${arch_vmlinux_o} ${ldlibs}
+		${kallsymso} ${btf_vmlinux_bin_o} ${arch_vmlinux_o} ${ldlibs}"
 }
 
 # Create ${2}.o file with all symbols from the ${1} object file
@@ -120,11 +139,11 @@ kallsyms()
 	fi
 
 	info KSYMS "${2}.S"
-	scripts/kallsyms ${kallsymopt} "${1}" > "${2}.S"
+	run "scripts/kallsyms ${kallsymopt} \"${1}\" > \"${2}.S\""
 
 	info AS "${2}.o"
-	${CC} ${NOSTDINC_FLAGS} ${LINUXINCLUDE} ${KBUILD_CPPFLAGS} \
-	      ${KBUILD_AFLAGS} ${KBUILD_AFLAGS_KERNEL} -c -o "${2}.o" "${2}.S"
+	run "${CC} ${NOSTDINC_FLAGS} ${LINUXINCLUDE} ${KBUILD_CPPFLAGS} \
+	      ${KBUILD_AFLAGS} ${KBUILD_AFLAGS_KERNEL} -c -o \"${2}.o\" \"${2}.S\""
 
 	kallsymso=${2}.o
 }
@@ -143,22 +162,36 @@ sysmap_and_kallsyms()
 mksysmap()
 {
 	info NM ${2}
-	${NM} -n "${1}" | sed -f "${srctree}/scripts/mksysmap" > "${2}"
+	run "${NM} -n \"${1}\" | sed -f \"${srctree}/scripts/mksysmap\" > \"${2}\""
 }
 
 sorttable()
 {
-	${NM} -S ${1} > .tmp_vmlinux.nm-sort
-	${objtree}/scripts/sorttable -s .tmp_vmlinux.nm-sort ${1}
+	run "${NM} -S ${1} > .tmp_vmlinux.nm-sort"
+	run "${objtree}/scripts/sorttable -s .tmp_vmlinux.nm-sort ${1}"
+}
+
+sorttable_vmlinux()
+{
+	if is_dry_run; then
+		echo "if ! ${NM} -S \"${VMLINUX}\" > .tmp_vmlinux.nm-sort ||"
+		echo "   ! ${objtree}/scripts/sorttable -s .tmp_vmlinux.nm-sort \"${VMLINUX}\"; then"
+		echo "	echo >&2 Failed to sort kernel tables"
+		echo "	exit 1"
+		echo "fi"
+	elif ! sorttable "${VMLINUX}"; then
+		echo >&2 Failed to sort kernel tables
+		exit 1
+	fi
 }
 
 cleanup()
 {
-	rm -f .btf.*
-	rm -f .tmp_vmlinux.nm-sort
-	rm -f System.map
-	rm -f vmlinux
-	rm -f vmlinux.map
+	run "rm -f .btf.*"
+	run "rm -f .tmp_vmlinux.nm-sort"
+	run "rm -f System.map"
+	run "rm -f vmlinux"
+	run "rm -f vmlinux.map"
 }
 
 # Use "make V=1" to debug this script
@@ -173,6 +206,10 @@ if [ "$1" = "clean" ]; then
 	exit 0
 fi
 
+# This must run even when dry_run is set.  The recursive make inherits -n and
+# prints the command that builds init/version-timestamp.o into the generated
+# script.  If this went through run(), replay would only see another make
+# invocation, and replay deliberately defines make as a no-op.
 ${MAKE} -f "${srctree}/scripts/Makefile.build" obj=init init/version-timestamp.o
 
 arch_vmlinux_o=
@@ -189,12 +226,12 @@ generate_map=
 # Use "make UT=1" to trigger warnings on unused tracepoints
 case "${WARN_ON_UNUSED_TRACEPOINTS}" in
 *1*)
-	${objtree}/scripts/tracepoint-update vmlinux.o
+	run "${objtree}/scripts/tracepoint-update vmlinux.o"
 	;;
 esac
 
 if is_enabled CONFIG_KALLSYMS; then
-	true > .tmp_vmlinux0.syms
+	run "true > .tmp_vmlinux0.syms"
 	kallsyms .tmp_vmlinux0.syms .tmp_vmlinux0.kallsyms
 fi
 
@@ -210,7 +247,9 @@ fi
 
 if is_enabled CONFIG_DEBUG_INFO_BTF; then
 	info BTF .tmp_vmlinux1
-	if ! ${CONFIG_SHELL} ${srctree}/scripts/gen-btf.sh .tmp_vmlinux1; then
+	if is_dry_run; then
+		run "${CONFIG_SHELL} ${srctree}/scripts/gen-btf.sh .tmp_vmlinux1"
+	elif ! ${CONFIG_SHELL} ${srctree}/scripts/gen-btf.sh .tmp_vmlinux1; then
 		echo >&2 "Failed to generate BTF for vmlinux"
 		echo >&2 "Try to disable CONFIG_DEBUG_INFO_BTF"
 		exit 1
@@ -249,13 +288,13 @@ if is_enabled CONFIG_KALLSYMS; then
 	strip_debug=1
 
 	sysmap_and_kallsyms .tmp_vmlinux1
-	size1=$(${CONFIG_SHELL} "${srctree}/scripts/file-size.sh" ${kallsymso})
+	is_dry_run || size1=$(${CONFIG_SHELL} "${srctree}/scripts/file-size.sh" ${kallsymso})
 
 	vmlinux_link .tmp_vmlinux2
 	sysmap_and_kallsyms .tmp_vmlinux2
-	size2=$(${CONFIG_SHELL} "${srctree}/scripts/file-size.sh" ${kallsymso})
+	is_dry_run || size2=$(${CONFIG_SHELL} "${srctree}/scripts/file-size.sh" ${kallsymso})
 
-	if [ $size1 -ne $size2 ] || [ -n "${KALLSYMS_EXTRA_PASS}" ]; then
+	if is_dry_run || [ $size1 -ne $size2 ] || [ -n "${KALLSYMS_EXTRA_PASS}" ]; then
 		vmlinux_link .tmp_vmlinux3
 		sysmap_and_kallsyms .tmp_vmlinux3
 	fi
@@ -270,22 +309,23 @@ fi
 vmlinux_link "${VMLINUX}"
 
 if is_enabled CONFIG_DEBUG_INFO_BTF; then
-	info BTFIDS ${VMLINUX}
-	${RESOLVE_BTFIDS} --patch_btfids ${btfids_vmlinux} ${VMLINUX}
+	info BTFIDS "${VMLINUX}"
+	RESOLVE_BTFIDS_ARGS=""
+	if is_enabled CONFIG_WERROR; then
+		RESOLVE_BTFIDS_ARGS=" --fatal_warnings "
+	fi
+	run "${RESOLVE_BTFIDS} ${RESOLVE_BTFIDS_ARGS} --patch_btfids \"${btfids_vmlinux}\" \"${VMLINUX}\""
 fi
 
 mksysmap "${VMLINUX}" System.map
 
 if is_enabled CONFIG_BUILDTIME_TABLE_SORT; then
 	info SORTTAB "${VMLINUX}"
-	if ! sorttable "${VMLINUX}"; then
-		echo >&2 Failed to sort kernel tables
-		exit 1
-	fi
+	sorttable_vmlinux
 fi
 
 # step a (see comment above)
-if is_enabled CONFIG_KALLSYMS; then
+if ! is_dry_run && is_enabled CONFIG_KALLSYMS; then
 	if ! cmp -s System.map "${kallsyms_sysmap}"; then
 		echo >&2 Inconsistent kallsyms data
 		echo >&2 'Try "make KALLSYMS_EXTRA_PASS=1" as a workaround'
