@@ -104,9 +104,10 @@ ifneq ($(findstring 1, $(KBUILD_VERBOSE)),)
   Q =
 endif
 
-# If the user is running make -s (silent mode), suppress echoing of
-# commands
-ifneq ($(findstring s,$(firstword -$(MAKEFLAGS))),)
+# If the user is running make -s (silent mode) or -n (dry run mode),
+# suppress echoing of commands
+ifneq (,$(or $(findstring s,$(firstword -$(MAKEFLAGS))), \
+	$(findstring n,$(firstword -$(MAKEFLAGS)))))
 quiet=silent_
 override KBUILD_VERBOSE :=
 endif
