@@ -258,6 +258,26 @@ $(filter-out $(this-makefile), $(MAKECMDGOALS)) __all: __sub-make
 
 # Invoke a second make in the output directory, passing relevant variables
 __sub-make:
+ifdef dry_run
+	@set -e
+	# Define make aliases as no-ops so that recursive kernel builds
+	# are not actually run. Tools builds are allowed because their dry-run
+	# output is not standalone from the kernel output directory.
+	@dry_run_make='$(MAKE)'
+	@make() { \
+		case " $$* " in \
+		*" -C $(abs_srctree)/tools"*) command "$$dry_run_make" "$$@";; \
+		*) \
+			case "$$PWD" in \
+			$(abs_srctree)/tools*) command "$$dry_run_make" "$$@";; \
+			*) :;; \
+			esac;; \
+		esac; \
+	}
+	@gmake() { make "$$@"; }
+	@export -f make
+	@export -f gmake
+endif
 	$(Q)$(MAKE) $(no-print-directory) -C $(abs_output) \
 	-f $(abs_srctree)/Makefile $(MAKECMDGOALS)
 
