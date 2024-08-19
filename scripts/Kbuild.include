@@ -94,6 +94,7 @@ kecho := $($(quiet)kecho)
 # - If no file exist it is created
 # - If the content differ the new file is used
 # - If they are equal no change, and no timestamp update
+ifndef dry_run
 define filechk
 	$(check-FORCE)
 	$(Q)set -e;						\
@@ -105,6 +106,19 @@ define filechk
 		mv -f $(tmp-target) $@;				\
 	fi
 endef
+else
+# Write directly to the generated file in dry-run output, but remove a partial
+# file if the replayed command fails.
+define filechk
+	(							\
+		set -e;						\
+		mkdir -p $(dir $@);				\
+		trap "rm -f $@" EXIT;				\
+		{ $(filechk_$(1)); } > $@;			\
+		trap - EXIT;					\
+	)
+endef
+endif
 
 ###
 # Shorthand for $(Q)$(MAKE) -f scripts/Makefile.build obj=
@@ -149,8 +163,13 @@ delete-on-interrupt = \
 		$(foreach sig, HUP INT QUIT TERM PIPE, \
 			trap 'rm -f $@; trap - $(sig); kill -s $(sig) $$$$' $(sig);))
 
+ifndef dry_run
 # print and execute commands
 cmd = @$(if $(cmd_$(1)),set -e; $($(quiet)log_print) $(delete-on-interrupt) $(cmd_$(1)),:)
+else
+# just execute (...which will actually "just print" with make -n)
+cmd = @$(if $(cmd_$(1)),$(cmd_$(1)),)
+endif
 
 ###
 # if_changed      - execute command if any prerequisite is newer than
@@ -196,17 +215,30 @@ if-changed-cond = $(newer-prereqs)$(cmd-check)$(check-FORCE)
 # Execute command if command has changed or prerequisite(s) are updated.
 if_changed = $(if $(if-changed-cond),$(cmd_and_savecmd),@:)
 
+ifndef dry_run
 cmd_and_savecmd =                                                            \
 	$(cmd);                                                              \
 	printf '%s\n' 'savedcmd_$@ := $(make-cmd)' > $(dot-target).cmd
+else
+cmd_and_savecmd = $(cmd)
+endif
 
+ifndef dry_run
 # Execute the command and also postprocess generated .d dependencies file.
 if_changed_dep = $(if $(if-changed-cond),$(cmd_and_fixdep),@:)
+else
+# Just execute the command directly
+if_changed_dep = $(cmd)
+endif
 
+ifndef dry_run
 cmd_and_fixdep =                                                             \
 	$(cmd);                                                              \
 	$(objtree)/scripts/basic/fixdep $(depfile) $@ '$(make-cmd)' > $(dot-target).cmd;\
 	rm -f $(depfile)
+else
+cmd_and_fixdep = $(cmd)
+endif
 
 # Usage: $(call if_changed_rule,foo)
 # Will check if $(cmd_foo) or any of the prerequisites changed,
