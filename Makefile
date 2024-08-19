@@ -22,6 +22,19 @@ $(if $(filter __%, $(MAKECMDGOALS)), \
 PHONY := __all
 __all:
 
+# Was make invoked with --dry-run/-n? Record this in a convenience variable.
+ifeq (n,$(findstring n,$(firstword -$(MAKEFLAGS))))
+export dry_run := 1
+
+# Recursive make commands in the generated script must resolve to a shell
+# function, so strip absolute paths such as /usr/bin/make from $(MAKE).
+dry_run_make := $(notdir $(MAKE))
+override MAKE := $(if $(filter gmake,$(dry_run_make)),gmake,make)
+else
+override dry_run :=
+unexport dry_run
+endif
+
 # We are using a recursive build, so we need to do a little thinking
 # to get the ordering right.
 #
