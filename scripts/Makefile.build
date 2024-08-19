@@ -484,7 +484,9 @@ cmd_gen_order = { $(foreach m, $(real-prereqs), \
 	> $@
 
 $(obj)/modules.order: $(obj-m) FORCE
-	$(call if_changed,gen_order)
+# This is a sequential command, but later dry-run recursive make invocations
+# read modules.order to discover module targets.
+	+$(call if_changed,gen_order)
 
 #
 # Rule to compile a set of .o files into one .a file (with symbol table)
