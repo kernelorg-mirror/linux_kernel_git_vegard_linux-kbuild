@@ -79,8 +79,11 @@ quiet_cmd_voffset = VOFFSET $@
 
 targets += ../voffset.h
 
-# Provided by a recursive-make predecessor during dry-run graph walk.
+# Provided by recursive-make predecessors during dry-run graph walk.
 PHONY += vmlinux
+ifdef dry_run
+PHONY += vmlinux.unstripped
+endif
 
 $(obj)/../voffset.h: vmlinux FORCE
 	$(call if_changed,voffset)
@@ -115,8 +118,9 @@ $(obj)/sbat.o: $(CONFIG_EFI_SBAT_FILE)
 AFLAGS_sbat.o += -I $(srctree)
 endif
 
-# Provided by a recursive-make predecessor during dry-run graph walk.
+# Provided by recursive-make predecessors during dry-run graph walk.
 PHONY += $(objtree)/drivers/firmware/efi/libstub/lib.a
+PHONY += $(objtree)/arch/x86/boot/startup/lib.a
 
 $(obj)/vmlinux: $(vmlinux-objs-y) $(vmlinux-libs-y) FORCE
 	$(call if_changed,ld)

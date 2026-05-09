@@ -129,7 +129,11 @@ $(OBJTOOL): $(LIBSUBCMD) $(OBJTOOL_IN)
 
 
 $(LIBSUBCMD_OUTPUT):
+ifdef dry_run
+	+$(MKDIR) -p $@
+else
 	$(Q)$(MKDIR) -p $@
+endif
 
 $(LIBSUBCMD): fixdep $(LIBSUBCMD_OUTPUT) FORCE
 	$(Q)$(MAKE) -C $(LIBSUBCMD_DIR) O=$(LIBSUBCMD_OUTPUT) \

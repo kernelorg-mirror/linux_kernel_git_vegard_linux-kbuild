@@ -26,6 +26,11 @@ posttest: $(obj)/insn_decoder_test vmlinux $(obj)/insn_sanity
 	$(call cmd,posttest)
 	$(call cmd,sanitytest)
 
+ifdef dry_run
+# Provided by a recursive-make predecessor during dry-run graph walk.
+PHONY += vmlinux
+endif
+
 hostprogs += insn_decoder_test insn_sanity
 
 # -I needed for generated C source and C source which in the kernel tree.
