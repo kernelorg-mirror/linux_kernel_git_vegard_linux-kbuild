@@ -83,7 +83,17 @@ VDSO2C = $(objtree)/arch/x86/tools/vdso2c
 quiet_cmd_vdso2c = VDSO2C  $@
       cmd_vdso2c = $(VDSO2C) $< $(<:%.dbg=%) $@
 
+ifdef dry_run
+PHONY += $(VDSO2C)
+
+$(foreach x,$(vdsos-y),$(obj)/vdso$(x)-image.c): $(obj)/vdso%-image.c: $(obj)/vdso%.so.dbg $(obj)/vdso%.so $(VDSO2C) FORCE
+	$(call if_changed,vdso2c)
+
+$(foreach x,$(vdsos-y),$(obj)/vdso$(x)-image.o): $(obj)/vdso%-image.o: $(obj)/vdso%-image.c FORCE
+	$(call if_changed_rule,cc_o_c)
+else
 $(obj)/%-image.c: $(obj)/%.so.dbg $(obj)/%.so $(VDSO2C) FORCE
 	$(call if_changed,vdso2c)
 
 $(obj)/%-image.o: $(obj)/%-image.c
+endif
