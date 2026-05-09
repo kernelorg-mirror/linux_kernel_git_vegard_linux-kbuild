@@ -292,13 +292,12 @@ timestamps and build version strings do not cause false differences::
 
     make O=$base defconfig
     make O=$base -n > $base/make.sh
-    chmod +x $base/make.sh
     bash -n $base/make.sh
 
     cp -a $base $plain
 
     make -j$(nproc) O=$plain
-    ( cd $base && ./make.sh )
+    ( cd $base && bash -x ./make.sh > script.log 2>&1 )
 
     for f in \
         vmlinux \
@@ -306,6 +305,7 @@ timestamps and build version strings do not cause false differences::
         System.map \
         modules.builtin \
         modules.builtin.modinfo \
+        Module.symvers \
         arch/x86/boot/bzImage
     do
         cmp "$plain/$f" "$base/$f"

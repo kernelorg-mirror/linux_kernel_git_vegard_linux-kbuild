@@ -237,7 +237,7 @@ cmd_and_fixdep =                                                             \
 	$(objtree)/scripts/basic/fixdep $(depfile) $@ '$(make-cmd)' > $(dot-target).cmd;\
 	rm -f $(depfile)
 else
-cmd_and_fixdep = $(cmd)
+cmd_and_fixdep = $(cmd)$(if $(CONFIG_MODVERSIONS),; printf '\n' > $(dot-target).cmd)
 endif
 
 # Usage: $(call if_changed_rule,foo)
