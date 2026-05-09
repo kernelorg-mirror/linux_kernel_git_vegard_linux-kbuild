@@ -19,6 +19,7 @@ Kernel Build System
 
     issues
     reproducible-builds
+    dry-run-script
     gcc-plugins
     llvm
     gendwarfksyms
