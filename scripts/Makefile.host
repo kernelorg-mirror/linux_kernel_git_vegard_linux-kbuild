@@ -112,6 +112,9 @@ quiet_cmd_host-csingle 	= HOSTCC  $@
 		$(KBUILD_HOSTLDLIBS) $(HOSTLDLIBS_$(target-stem))
 $(host-csingle): $(obj)/%: $(obj)/%.c FORCE
 	$(call if_changed_dep,host-csingle)
+ifdef dry_run
+	+touch $@
+endif
 
 # Link an executable based on list of .o files, all plain c
 # host-cmulti -> executable
@@ -121,6 +124,9 @@ quiet_cmd_host-cmulti	= HOSTLD  $@
 			  $(KBUILD_HOSTLDLIBS) $(HOSTLDLIBS_$(target-stem))
 $(host-cmulti): FORCE
 	$(call if_changed,host-cmulti)
+ifdef dry_run
+	+touch $@
+endif
 $(call multi_depend, $(host-cmulti), , -objs)
 
 # Create .o file from a single .c file
@@ -139,6 +145,9 @@ quiet_cmd_host-cxxmulti	= HOSTLD  $@
 			  $(KBUILD_HOSTLDLIBS) $(HOSTLDLIBS_$(target-stem))
 $(host-cxxmulti): FORCE
 	$(call if_changed,host-cxxmulti)
+ifdef dry_run
+	+touch $@
+endif
 $(call multi_depend, $(host-cxxmulti), , -objs -cxxobjs)
 
 # Create .o file from a single .cc (C++) file
@@ -155,6 +164,9 @@ quiet_cmd_host-rust	= HOSTRUSTC $@
 	$(HOSTRUSTC) $(hostrust_flags) --emit=link=$@ $<
 $(host-rust): $(obj)/%: $(src)/%.rs FORCE
 	+$(call if_changed_dep,host-rust)
+ifdef dry_run
+	+touch $@
+endif
 
 targets += $(host-csingle) $(host-cmulti) $(host-cobjs) \
 	   $(host-cxxmulti) $(host-cxxobjs) $(host-rust)

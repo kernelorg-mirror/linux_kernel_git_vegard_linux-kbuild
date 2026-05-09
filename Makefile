@@ -1562,6 +1562,10 @@ tools/: FORCE
 
 tools/%: FORCE
 	$(Q)mkdir -p $(objtree)/tools
+ifdef dry_run
+	+mkdir -p $(objtree)/tools/
+	+mkdir -p $(objtree)/tools/$*
+endif
 	$(Q)$(MAKE) O=$(abspath $(objtree)) subdir=tools -C $(srctree)/tools/ $*
 
 # ---------------------------------------------------------------------------
