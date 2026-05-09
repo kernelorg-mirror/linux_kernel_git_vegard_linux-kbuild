@@ -39,6 +39,9 @@ include $(objtree)/include/config/auto.conf
 include $(srctree)/scripts/Kbuild.include
 
 MODPOST = $(objtree)/scripts/mod/modpost
+ifdef dry_run
+PHONY += $(MODPOST)
+endif
 
 modpost-args =										\
 	$(if $(CONFIG_MODULES),-M)							\

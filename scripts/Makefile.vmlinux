@@ -4,7 +4,7 @@
 # one command while actually executing another, so we resort to this hack
 # where we set an environment variable differently depending on whether
 # we are executing from 'make' or executing from the 'make -n' log.
-LINK_VMLINUX=scripts/link-vmlinux.sh
+LINK_VMLINUX=$(srctree)/scripts/link-vmlinux.sh
 export LINK_VMLINUX
 
 PHONY := __default
@@ -60,13 +60,11 @@ endif
 # vmlinux.unstripped
 # ---------------------------------------------------------------------------
 
-ifdef CONFIG_MODULES
 # Provided by a recursive-make predecessor during dry-run graph walk.
 PHONY += .vmlinux.export.c
 
 targets += .vmlinux.export.o
 vmlinux.unstripped: .vmlinux.export.o
-endif
 
 ifdef CONFIG_ARCH_WANTS_PRE_LINK_VMLINUX
 vmlinux.unstripped: arch/$(SRCARCH)/tools/vmlinux.arch.o
@@ -98,6 +96,9 @@ vmlinux.unstripped: $(RESOLVE_BTFIDS) $(srctree)/scripts/gen-btf.sh
 endif
 
 ifdef CONFIG_BUILDTIME_TABLE_SORT
+ifdef dry_run
+PHONY += scripts/sorttable
+endif
 vmlinux.unstripped: scripts/sorttable
 endif
 
