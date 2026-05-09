@@ -1447,11 +1447,12 @@ uapi-asm-generic:
 
 uts_len := 64
 define filechk_utsrelease.h
-	if [ `echo -n "$(KERNELRELEASE)" | wc -c ` -gt $(uts_len) ]; then \
-	  echo '"$(KERNELRELEASE)" exceeds $(uts_len) characters' >&2;    \
+	uts_release=$$(cat include/config/kernel.release);                \
+	if [ `echo -n "$$uts_release" | wc -c ` -gt $(uts_len) ]; then    \
+	  echo "$$uts_release exceeds $(uts_len) characters" >&2;         \
 	  exit 1;                                                         \
 	fi;                                                               \
-	echo \#define UTS_RELEASE \"$(KERNELRELEASE)\"
+	echo \#define UTS_RELEASE \"$$uts_release\"
 endef
 
 define filechk_version.h
