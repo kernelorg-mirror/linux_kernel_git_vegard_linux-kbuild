@@ -249,6 +249,9 @@ ifeq ($(filter --no-print-directory, $(MAKEFLAGS)),)
 # behavior change in GNU Make 4.4.1.
 need-sub-make := 1
 endif
+ifdef dry_run
+no-print-directory := --no-print-directory
+endif
 
 ifeq ($(need-sub-make),1)
 
