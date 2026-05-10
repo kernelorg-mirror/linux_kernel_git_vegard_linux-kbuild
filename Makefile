@@ -1215,6 +1215,26 @@ include-$(CONFIG_GCC_PLUGINS)	+= scripts/Makefile.gcc-plugins
 
 include $(addprefix $(srctree)/, $(include-y))
 
+ifdef dry_run
+PHONY += dry-run-exports
+prepare: dry-run-exports
+
+dry-run-exports:
+	# Export variables needed by helper scripts that are printed into
+	# the replay script instead of being run under make.
+	@export PAHOLE='$(call escsq,$(PAHOLE))'
+	@export PAHOLE_FLAGS='$(call escsq,$(PAHOLE_FLAGS))'
+	@export RESOLVE_BTFIDS='$(call escsq,$(RESOLVE_BTFIDS))'
+	@export RESOLVE_BTFIDS_FLAGS='$(call escsq,$(RESOLVE_BTFIDS_FLAGS))'
+	@export CC='$(call escsq,$(CC))'
+	@export CLANG_FLAGS='$(call escsq,$(CLANG_FLAGS))'
+	@export KBUILD_CPPFLAGS='$(call escsq,$(KBUILD_CPPFLAGS))'
+	@export KBUILD_CFLAGS='$(call escsq,$(KBUILD_CFLAGS))'
+	@export OBJCOPY='$(call escsq,$(OBJCOPY))'
+	@export objtree='$(call escsq,$(objtree))'
+	@export KBUILD_VERBOSE='$(call escsq,$(KBUILD_VERBOSE))'
+endif
+
 # scripts/Makefile.gcc-plugins is intentionally included last.
 # Do not add $(call cc-option,...) below this line. When you build the kernel
 # from the clean source tree, the GCC plugins do not exist at this point.
