@@ -309,6 +309,8 @@ $(obj)/%.lst: $(obj)/%.c FORCE
 # Compile Rust sources (.rs)
 # ---------------------------------------------------------------------------
 
+rust_exec := $(if $(dry_run),,+)
+
 # The features in this list are the ones allowed for non-`rust/` code.
 #
 #   - Stable since Rust 1.87.0: `feature(asm_goto)`.
@@ -356,7 +358,7 @@ define rule_rustc_o_rs
 endef
 
 $(obj)/%.o: $(obj)/%.rs FORCE
-	+$(call if_changed_rule,rustc_o_rs)
+	$(rust_exec)$(call if_changed_rule,rustc_o_rs)
 
 quiet_cmd_rustc_rsi_rs = $(RUSTC_OR_CLIPPY_QUIET) $(quiet_modtag) $@
       cmd_rustc_rsi_rs = \
@@ -364,25 +366,25 @@ quiet_cmd_rustc_rsi_rs = $(RUSTC_OR_CLIPPY_QUIET) $(quiet_modtag) $@
 	command -v $(RUSTFMT) >/dev/null && $(RUSTFMT) --config-path $(srctree)/.rustfmt.toml $@
 
 $(obj)/%.rsi: $(obj)/%.rs FORCE
-	+$(call if_changed_dep,rustc_rsi_rs)
+	$(rust_exec)$(call if_changed_dep,rustc_rsi_rs)
 
 quiet_cmd_rustc_s_rs = $(RUSTC_OR_CLIPPY_QUIET) $(quiet_modtag) $@
       cmd_rustc_s_rs = $(rust_common_cmd) --emit=asm=$@ $<
 
 $(obj)/%.s: $(obj)/%.rs FORCE
-	+$(call if_changed_dep,rustc_s_rs)
+	$(rust_exec)$(call if_changed_dep,rustc_s_rs)
 
 quiet_cmd_rustc_ll_rs = $(RUSTC_OR_CLIPPY_QUIET) $(quiet_modtag) $@
       cmd_rustc_ll_rs = $(rust_common_cmd) --emit=llvm-ir=$@ $<
 
 $(obj)/%.ll: $(obj)/%.rs FORCE
-	+$(call if_changed_dep,rustc_ll_rs)
+	$(rust_exec)$(call if_changed_dep,rustc_ll_rs)
 
 quiet_cmd_rustc_rs_rs_S = RSCPP $(quiet_modtag) $@
       cmd_rustc_rs_rs_S = $(CPP) $(c_flags) -xc -C -P $< | sed '1,/^\/\/ Cut here.$$/d' >$@
 
 $(obj)/%.rs: $(obj)/%.rs.S FORCE
-	+$(call if_changed_dep,rustc_rs_rs_S)
+	$(rust_exec)$(call if_changed_dep,rustc_rs_rs_S)
 
 # Compile assembler sources (.S)
 # ---------------------------------------------------------------------------
